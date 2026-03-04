@@ -1,4 +1,4 @@
-// --- CONFIGURACIÓN ---
+// --- CONFIGURACIÓN GLOBAL ---
 let scene, camera, renderer, particles;
 const particleCount = 15000; 
 let shapes = { hani: [], heart: [], mensaje: [] };
@@ -6,11 +6,12 @@ let targetShapeName = 'heart';
 let isInteracting = false;      
 let isFontLoaded = false;
 
-// Rotación controlada por gestos
+// Rotación controlada por mano
 let targetRotationX = 0;
 let targetRotationY = 0;
 
 const uiStatus = document.getElementById('status');
+const colorPicker = document.getElementById('colorPicker');
 
 // --- INICIO ---
 initThreeJS();
@@ -37,7 +38,7 @@ function initThreeJS() {
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
     const material = new THREE.PointsMaterial({
-        color: document.getElementById('colorPicker').value,
+        color: colorPicker.value,
         size: 12, opacity: 1.0, transparent: false,
         blending: THREE.NormalBlending, sizeAttenuation: true
     });
@@ -45,7 +46,7 @@ function initThreeJS() {
     particles = new THREE.Points(geometry, material);
     scene.add(particles);
 
-    document.getElementById('colorPicker').addEventListener('input', (e) => particles.material.color.set(e.target.value));
+    colorPicker.addEventListener('input', (e) => particles.material.color.set(e.target.value));
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
@@ -54,7 +55,7 @@ function initThreeJS() {
 }
 
 async function calculateShapes() {
-    uiStatus.innerText = "🔨 Preparando...";
+    uiStatus.innerText = "🔨 Esculpiendo...";
 
     // A) CORAZÓN REDONDO
     let count = 0;
@@ -66,12 +67,11 @@ async function calculateShapes() {
         }
     }
 
-    // B) TEXTOS (Hani y Mensaje Especial)
+    // B) TEXTOS
     const loader = new THREE.FontLoader();
     await new Promise((resolve) => {
         loader.load('https://unpkg.com/three@0.128.0/examples/fonts/helvetiker_bold.typeface.json', (font) => {
             
-            // 1. Nombre Hani
             const haniGeo = new THREE.TextGeometry('Hani', {
                 font: font, size: 500, height: 150, curveSegments: 20,
                 bevelEnabled: true, bevelThickness: 30, bevelSize: 10, bevelSegments: 5
@@ -79,9 +79,8 @@ async function calculateShapes() {
             haniGeo.center();
             sampleGeometry(haniGeo, shapes.hani);
 
-            // 2. Frase Eres increible enojona
             const fraseGeo = new THREE.TextGeometry('Eres increible\nenojona :D', {
-                font: font, size: 220, height: 80, curveSegments: 15,
+                font: font, size: 210, height: 80, curveSegments: 15,
                 bevelEnabled: true, bevelThickness: 15, bevelSize: 8, bevelSegments: 5
             });
             fraseGeo.center();
@@ -91,7 +90,7 @@ async function calculateShapes() {
             resolve();
         });
     });
-    uiStatus.innerText = "✋ ¡Listo! Haz un gesto.";
+    uiStatus.innerText = "✋ ¡Listo!";
 }
 
 function sampleGeometry(geometry, targetArray) {
@@ -107,11 +106,9 @@ function sampleGeometry(geometry, targetArray) {
 function animate() {
     requestAnimationFrame(animate);
     if (!isFontLoaded) return;
-    
     const target = shapes[targetShapeName];
     const positions = particles.geometry.attributes.position.array;
 
-    // Rotación suave siguiendo a la mano
     particles.rotation.y += (targetRotationY - particles.rotation.y) * 0.1;
     particles.rotation.x += (targetRotationX - particles.rotation.x) * 0.1;
 
@@ -134,13 +131,10 @@ function animate() {
 function initMediaPipe() {
     const videoElement = document.getElementsByClassName('input_video')[0];
     const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
-    hands.setOptions({maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7});
+    hands.setOptions({maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.75});
     hands.onResults((results) => {
         if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
             detectarGesto(results.multiHandLandmarks[0]);
-        } else {
-            uiStatus.innerText = "Buscando mano...";
-            uiStatus.style.color = "orange";
         }
     });
     const cameraUtils = new Camera(videoElement, {
@@ -156,27 +150,30 @@ function detectarGesto(landmarks) {
     const middleUp = landmarks[12].y < landmarks[10].y;
     const ringUp = landmarks[16].y < landmarks[14].y;
     const pinkyUp = landmarks[20].y < landmarks[18].y;
+    
     const pinchDist = Math.sqrt(Math.pow(landmarks[4].x - landmarks[8].x, 2) + Math.pow(landmarks[4].y - landmarks[8].y, 2));
 
     // 1. PELLIZCO -> ROTAR 👌
     if (pinchDist < 0.05) {
         isInteracting = true; uiStatus.innerText = "👌 Rotando...";
-        targetRotationY = (landmarks[9].x - 0.5) * 5; targetRotationX = (landmarks[9].y - 0.5) * 5;
+        targetRotationY = (landmarks[9].x - 0.5) * 5; 
+        targetRotationX = (landmarks[9].y - 0.5) * 5;
         return; 
     }
     // 2. PAZ -> HANI ✌️
     if (indexUp && middleUp && !ringUp && !pinkyUp) {
         targetShapeName = 'hani'; isInteracting = true; uiStatus.innerText = "✌️ HANI"; return;
     }
-    // 3. LLAMADA -> MENSAJE 🤙
+    // 3. MINI CORAZÓN 🫰 (Distancia corta entre pulgar e índice + otros cerrados)
+    const heartDist = Math.sqrt(Math.pow(landmarks[4].x - landmarks[8].x, 2) + Math.pow(landmarks[4].y - landmarks[8].y, 2));
+    if (heartDist < 0.08 && !middleUp && !ringUp && !pinkyUp) {
+        targetShapeName = 'heart'; isInteracting = true; uiStatus.innerText = "🫰 CORAZÓN"; return;
+    }
+    // 4. LLAMADA -> MENSAJE 🤙
     if (thumbUp && pinkyUp && !indexUp && !middleUp && !ringUp) {
-        targetShapeName = 'mensaje'; isInteracting = true; uiStatus.innerText = "🤙 SORPRESA..."; return;
+        targetShapeName = 'mensaje'; isInteracting = true; uiStatus.innerText = "🤙 ERES INCREIBLE..."; return;
     }
-    // 4. PUÑO -> CORAZÓN ✊
-    if (!indexUp && !middleUp && !ringUp && !pinkyUp && !thumbUp) {
-        targetShapeName = 'heart'; isInteracting = true; uiStatus.innerText = "✊ CORAZÓN"; return;
-    }
-    // 5. ABIERTA -> EXPLOTAR ✋
+    // 5. ABIERTA -> DISPERSAR ✋
     if (indexUp && middleUp && ringUp && pinkyUp) {
         isInteracting = false; uiStatus.innerText = "✋ Dispersando..."; return;
     }
