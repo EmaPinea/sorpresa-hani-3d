@@ -1,4 +1,4 @@
-// --- CONFIGURACIÓN PRINCIPAL ---
+// --- CONFIGURACIÓN ---
 let scene, camera, renderer, particles;
 const particleCount = 15000; 
 let shapes = { hani: [], heart: [], mensaje: [] };
@@ -6,13 +6,13 @@ let targetShapeName = 'heart';
 let isInteracting = false;      
 let isFontLoaded = false;
 
-// Rotación controlada por mano
+// Rotación controlada por gestos
 let targetRotationX = 0;
 let targetRotationY = 0;
 
-const colorPicker = document.getElementById('status'); // Referencia visual
 const uiStatus = document.getElementById('status');
 
+// --- INICIO ---
 initThreeJS();
 calculateShapes().then(() => {
     initMediaPipe();
@@ -54,7 +54,7 @@ function initThreeJS() {
 }
 
 async function calculateShapes() {
-    uiStatus.innerText = "🔨 Preparando frase...";
+    uiStatus.innerText = "🔨 Preparando...";
 
     // A) CORAZÓN REDONDO
     let count = 0;
@@ -66,12 +66,12 @@ async function calculateShapes() {
         }
     }
 
-    // B) TEXTOS
+    // B) TEXTOS (Hani y Mensaje Especial)
     const loader = new THREE.FontLoader();
     await new Promise((resolve) => {
         loader.load('https://unpkg.com/three@0.128.0/examples/fonts/helvetiker_bold.typeface.json', (font) => {
             
-            // 1. HANI
+            // 1. Nombre Hani
             const haniGeo = new THREE.TextGeometry('Hani', {
                 font: font, size: 500, height: 150, curveSegments: 20,
                 bevelEnabled: true, bevelThickness: 30, bevelSize: 10, bevelSegments: 5
@@ -79,7 +79,7 @@ async function calculateShapes() {
             haniGeo.center();
             sampleGeometry(haniGeo, shapes.hani);
 
-            // 2. FRASE RESTAURADA
+            // 2. Frase Eres increible enojona
             const fraseGeo = new THREE.TextGeometry('Eres increible\nenojona :D', {
                 font: font, size: 220, height: 80, curveSegments: 15,
                 bevelEnabled: true, bevelThickness: 15, bevelSize: 8, bevelSegments: 5
@@ -107,9 +107,11 @@ function sampleGeometry(geometry, targetArray) {
 function animate() {
     requestAnimationFrame(animate);
     if (!isFontLoaded) return;
-    const target = shapes[targetShapeName === 'besote' ? 'mensaje' : targetShapeName] || shapes.mensaje;
+    
+    const target = shapes[targetShapeName];
     const positions = particles.geometry.attributes.position.array;
 
+    // Rotación suave siguiendo a la mano
     particles.rotation.y += (targetRotationY - particles.rotation.y) * 0.1;
     particles.rotation.x += (targetRotationX - particles.rotation.x) * 0.1;
 
@@ -136,6 +138,9 @@ function initMediaPipe() {
     hands.onResults((results) => {
         if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
             detectarGesto(results.multiHandLandmarks[0]);
+        } else {
+            uiStatus.innerText = "Buscando mano...";
+            uiStatus.style.color = "orange";
         }
     });
     const cameraUtils = new Camera(videoElement, {
@@ -153,20 +158,25 @@ function detectarGesto(landmarks) {
     const pinkyUp = landmarks[20].y < landmarks[18].y;
     const pinchDist = Math.sqrt(Math.pow(landmarks[4].x - landmarks[8].x, 2) + Math.pow(landmarks[4].y - landmarks[8].y, 2));
 
+    // 1. PELLIZCO -> ROTAR 👌
     if (pinchDist < 0.05) {
         isInteracting = true; uiStatus.innerText = "👌 Rotando...";
         targetRotationY = (landmarks[9].x - 0.5) * 5; targetRotationX = (landmarks[9].y - 0.5) * 5;
         return; 
     }
+    // 2. PAZ -> HANI ✌️
     if (indexUp && middleUp && !ringUp && !pinkyUp) {
         targetShapeName = 'hani'; isInteracting = true; uiStatus.innerText = "✌️ HANI"; return;
     }
+    // 3. LLAMADA -> MENSAJE 🤙
     if (thumbUp && pinkyUp && !indexUp && !middleUp && !ringUp) {
-        targetShapeName = 'mensaje'; isInteracting = true; uiStatus.innerText = "🤙 ERES INCREIBLE..."; return;
+        targetShapeName = 'mensaje'; isInteracting = true; uiStatus.innerText = "🤙 SORPRESA..."; return;
     }
+    // 4. PUÑO -> CORAZÓN ✊
     if (!indexUp && !middleUp && !ringUp && !pinkyUp && !thumbUp) {
         targetShapeName = 'heart'; isInteracting = true; uiStatus.innerText = "✊ CORAZÓN"; return;
     }
+    // 5. ABIERTA -> EXPLOTAR ✋
     if (indexUp && middleUp && ringUp && pinkyUp) {
         isInteracting = false; uiStatus.innerText = "✋ Dispersando..."; return;
     }
