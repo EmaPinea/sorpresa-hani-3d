@@ -12,7 +12,7 @@ body {
     z-index: 1;
 }
 
-/* El video es invisible (opacity 0) pero sigue ahí para que la IA funcione */
+/* El video es invisible pero la IA lo usa */
 .input_video {
     position: absolute;
     bottom: 0; right: 0;
@@ -26,33 +26,22 @@ body {
     position: absolute;
     top: 20px; left: 20px;
     z-index: 10;
-    width: 260px;
+    width: 250px;
     padding: 20px;
-    background: rgba(20, 20, 20, 0.8); /* Fondo oscuro semitransparente */
+    background: rgba(20, 20, 20, 0.85);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 15px;
     color: white;
-    box-shadow: 0 0 20px rgba(255, 0, 128, 0.3);
+    box-shadow: 0 0 20px rgba(255, 0, 128, 0.4);
+    backdrop-filter: blur(5px);
 }
 
 h2 { margin-top: 0; color: #ff0080; text-shadow: 0 0 10px #ff0080; text-align: center; }
 
-.button-group { display: flex; gap: 5px; margin-bottom: 15px; }
-
-button {
-    flex: 1; padding: 10px;
-    background: #333; color: white;
-    border: 1px solid #555; border-radius: 5px;
-    cursor: pointer; transition: 0.3s;
-    font-weight: bold;
-}
-button:hover { background: #ff0080; border-color: #ff0080; }
-
-.control { margin-top: 15px; display: flex; justify-content: space-between; align-items: center; }
+.control { margin-top: 15px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #555; padding-top: 10px;}
 input[type="color"] { border: none; background: none; height: 30px; cursor: pointer; }
 
 #status { 
-    text-align: center; font-weight: bold; margin-bottom: 15px; 
-    color: #ffd700; font-size: 0.9em;
+    text-align: center; font-weight: bold; margin-bottom: 10px; 
+    color: #ffd700; font-size: 1.1em;
 }
-.instructions { font-size: 0.8em; color: #aaa; text-align: center; line-height: 1.5; }
