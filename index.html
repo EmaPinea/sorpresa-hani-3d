@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Hani 3D Mágico</title>
+    <title>Hani 3D: Control Maestro</title>
     <link rel="stylesheet" href="style.css">
     
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
@@ -20,26 +20,22 @@
         <h2>✨ Hani 3D</h2>
         <div id="status">⏳ Cargando...</div>
         
-        <p>Elige la forma:</p>
-        <div class="button-group">
-            <button onclick="setShape('sphere')">Esfera</button>
-            <button onclick="setShape('hani')">Hani</button>
-            <button onclick="setShape('heart')">Corazón</button>
+        <div style="font-size: 0.85em; color: #ddd; line-height: 1.6; margin-top: 10px;">
+            <p><strong>GESTOS:</strong><br>
+            ✌️ Paz = <strong>HANI</strong> <br>
+            ✊ Puño = <strong>CORAZÓN</strong><br>
+            🤙 Llamada = <strong>MENSAJE SORPRESA</strong></p> <p><strong>CONTROL:</strong><br>
+            👌 Pellizco + Mover = <strong>ROTAR</strong><br>
+            ✋ Mano Abierta = <strong>EXPLOTAR</strong></p>
         </div>
 
         <div class="control">
             <label>Color:</label>
             <input type="color" id="colorPicker" value="#ff0080">
         </div>
-        
-        <p class="instructions">
-            ✊ <strong>Cerrar mano:</strong> Formar figura<br>
-            ✋ <strong>Abrir mano:</strong> Explotar
-        </p>
     </div>
 
     <video class="input_video"></video>
-    
     <canvas id="canvas3d"></canvas>
 
     <script src="script.js"></script>
